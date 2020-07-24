@@ -1,0 +1,95 @@
+﻿@page "/listaelementi"
+@inject HttpClient http
+@using Newtonsoft.Json
+
+
+<h3 style="text-align:center"> Lista bug:</h3>
+<form style="padding-top:20px;">
+    <div class="form-group">
+        <label for="Autore">Cerca</label>
+        <input id="Cerca" type="text" @bind="Cerca" @bind:event="oninput" @onchange="Search" class="form-control" />
+    </div>
+</form>
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Titolo</th>
+            <th scope="col">Autore</th>
+            <th scope="col">Descrizione</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        @foreach (var Bug in Entries)
+        {
+            <tr class="table-@(Bug.Stato?"success":"danger")">
+                <th scope="row">
+                    @Bug.Data.DateTime.ToShortDateString() @if (Bug.Data.DateTime.Date == DateTime.Now.Date)
+                    {
+                        <span class="badge badge-secondary">New</span>
+                    }
+                    else
+                    {
+                    }
+                </th>
+                <td>@Bug.Titolo</td>
+                <td>@Bug.Autore</td>
+                <td>@Bug.Descrizione</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+@code {
+    public string Cerca { get; set; }
+    public List<BugModels> Entries { get; set; } = new List<BugModels>();
+    protected async override void OnInitialized()
+    {
+        Entries.Clear();
+        var Bugs = await http.GetAsync("https://bugtracker-fd977.firebaseio.com/.json");
+        Dictionary<string, BugModels> entryDict = JsonConvert.DeserializeObject<Dictionary<string, BugModels>>(await Bugs.Content.ReadAsStringAsync());
+        Entries = entryDict.Select(x => x.Value).ToList();
+        StateHasChanged();
+
+    }
+    public async void Search()
+    {
+        Cerca = Cerca.Trim();
+        if (Cerca.Length > 0)
+        {
+            try
+            {
+                var Bug = await http.GetFromJsonAsync<BugModels>("https://bugtracker-fd977.firebaseio.com/" + Cerca + "/.json");
+                if (Bug != null)
+                {
+                    Entries.Clear();
+                    Entries.Add(Bug);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Entries.Clear();
+                    StateHasChanged();
+                }
+            }
+            catch (Exception)
+            {
+                Entries.Clear();
+                Console.WriteLine("Nulla");
+                StateHasChanged();
+            }
+
+        }
+        else
+        {
+            OnInitialized();
+#warning Implementare ordinamento, Pagina admin stato
+
+        }
+
+    }
+
+
+}

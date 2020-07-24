@@ -1,0 +1,64 @@
+﻿@page "/"
+@inject HttpClient http;
+@using System
+@using System.Timers
+
+<h3> Aggiungi nuovo bug: </h3>
+<form>
+    <div class="form-group">
+        <label for="Autore">Autore</label>
+        <input type="text" class="form-control" id="Autore" @bind="NewBug.Autore">
+    </div>
+    <div class="form-group">
+        <label for="Autore">Titolo</label>
+        <input type="text" class="form-control" id="Titolo" @bind="NewBug.Titolo">
+    </div>
+    <div class="form-group">
+        <label for="Descrizione">Descrizione</label>
+        <textarea class="form-control" id="Descrizione" rows="3" @bind="NewBug.Descrizione"></textarea>
+    </div>
+</form>
+
+<button @onclick="PostBug" class="btn btn-outline-primary" style="margin-bottom:15px;">Add</button>
+
+<div class="alert alert-@(Creazione? "success":"danger")" role="alert" style="visibility:@(Visibile?"visible":"hidden")" >
+    @(Creazione? "Elemento creato con successo!! Codice:"+CodeRandom:"Errore!! Elemento non creato!!")
+</div>
+@code
+{
+
+    public BugModels NewBug { get; set; } = new BugModels();
+    public bool Creazione { get; set; } = false;
+    public string CodeRandom { get; set; }
+    public bool Visibile { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        Visibile = false;
+        StateHasChanged();
+    }
+    public async void PostBug()
+    {
+        var responseMessage = http.PostAsJsonAsync<BugModels>("https://bugtracker-fd977.firebaseio.com/.json", NewBug);
+        CodeRandom = (await (await responseMessage).Content.ReadAsStringAsync()).Replace('{', ' ').Replace('}', ' ').Remove(0, 6).Replace('"', ' ');
+        if ((await responseMessage).StatusCode.ToString() == "OK")
+        {
+            Creazione = true;
+            Visibile = true;
+            StateHasChanged();
+            await Task.Delay(5000);
+            Visibile = false;
+            StateHasChanged();
+
+        }
+        else
+        {
+            Creazione = true;
+            Creazione = false;
+            StateHasChanged();
+            await Task.Delay(5000);
+            Visibile = false;
+            StateHasChanged();
+        }
+    }
+}
